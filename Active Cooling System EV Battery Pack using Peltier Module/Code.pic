@@ -1,0 +1,76 @@
+/* Digital Thermometer using PIC16F688 and LM35 
+Internal Oscillator @ 4MHz, MCLR Enabled, PWRT Enabled, WDT OFF Copyright @ Rajendra Bhatt November 8, 2010 */
+
+// LCD module connections
+sbit LCD_RS at RC4_bit;
+sbit LCD_EN at RC5_bit;
+sbit LCD_D4 at RC0_bit;
+sbit LCD_D5 at RC1_bit;
+sbit LCD_D6 at RC2_bit;
+sbit LCD_D7 at RC3_bit;
+sbit LCD_RS_Direction at TRISC4_bit;
+sbit LCD_EN_Direction at TRISC5_bit;
+sbit LCD_D4_Direction at TRISC0_bit;
+sbit LCD_D5_Direction at TRISC1_bit;
+sbit LCD_D6_Direction at TRISC2_bit;
+sbit LCD_D7_Direction at TRISC3_bit;
+// End LCD module connections
+// Define Messages
+char message0[] = "LCD Initialized";
+char message1[] = "Room Temperature";
+// String array to store temperature value to display
+char *tempC = "000.0";
+char *tempF = "000.0";
+// Variables to store temperature values
+unsigned int tempinF, tempinC;
+unsigned long temp_value;
+void Display_Temperature() {
+ // convert Temp to characters
+ if (tempinC/10000)
+ // 48 is the decimal character code value for displaying 0 on LCD
+ tempC[0] = tempinC/10000 + 48;
+ else tempC[0] = ' ';
+ tempC[1] = (tempinC/1000)%10 + 48; // Extract tens digit
+ tempC[2] = (tempinC/100)%10 + 48; // Extract ones digit
+ // convert temp_fraction to characters
+ tempC[4] = (tempinC/10)%10 + 48; // Extract tens digit
+ // print temperature on LCD
+ Lcd_Out(2, 1, tempC);
+ if (tempinF/10000)
+ tempF[0] = tempinF/10000 + 48;
+ else tempF[0] = ' ';
+ tempF[1] = (tempinF/1000)%10 + 48; // Extract tens digit
+ tempF[2] = (tempinF/100)%10 + 48;
+ tempF[4] = (tempinF/10)%10 + 48;
+ // print temperature on LCD
+ Lcd_Out(2, 10, tempF);
+}
+void main() {
+ ANSEL = 0b00000100; // RA2/AN2 is analog input
+ ADCON0 = 0b01001000; // Connect AN2 to S/H, select Vref=1.19V
+ CMCON0 = 0x07 ; // Disbale comparators
+ TRISC = 0b00000000; // PORTC All Outputs
+ TRISA = 0b00001110; // PORTA All Outputs, Except RA3 and RA2
+ Lcd_Init(); // Initialize LCD
+ Lcd_Cmd(_LCD_CLEAR); // CLEAR display
+ Lcd_Cmd(_LCD_CURSOR_OFF); // Cursor off
+ Lcd_Out(1,1,message0);
+ Delay_ms(1000);
+ Lcd_Out(1,1,message1); // Write message1 in 1st row
+ // Print degree character
+ Lcd_Chr(2,6,223);
+ Lcd_Chr(2,15,223);
+ // Different LCD displays have different char code for degree symbol
+ // if you see greek alpha letter try typing 178 instead of 223
+ Lcd_Chr(2,7,'C');
+ Lcd_Chr(2,16,'F');
+ do {
+ temp_value = ADC_Read(2);
+ temp_value = temp_value*1168;
+ tempinC = temp_value/1000;
+ tempinC = tempinC*10;
+ tempinF = 9*tempinC/5 + 3200;
+ Display_Temperature();
+ Delay_ms(1000); // Temperature sampling at 1 sec interval
+ } while(1);
+}
